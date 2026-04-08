@@ -4,10 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIGMA Rule Generator — Describe an attack. Get a detection rule.</title>
-  <meta name="description" content="Describe an attack in plain English, paste a log line, or drop an IOC — and get a valid SIGMA rule with Splunk SPL, KQL, Elastic DSL and QRadar AQL conversions. AI-powered, 100% client-side.">
+  <meta name="description" content="Describe an attack in plain English, paste a log line, or drop an IOC — get a valid SIGMA rule with Splunk SPL, KQL, Elastic DSL, QRadar AQL, Trend Vision One XDR, and Microsoft Defender XDR conversions. AI-powered, 100% client-side.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     /* ═══════════════════════════════════════════════════
        RESET & BASE
@@ -100,6 +99,14 @@
     }
     .key-input:focus { border-color: var(--accent); }
     .key-badge { font-size: .72rem; color: var(--text3); }
+    .key-select {
+      background: var(--bg0); border: 1px solid var(--border);
+      border-radius: 7px; padding: 7px 10px;
+      color: var(--text1); font-size: .78rem; font-weight: 600;
+      cursor: pointer; outline: none; flex-shrink: 0;
+      font-family: 'Inter', sans-serif;
+    }
+    .key-select option { background: var(--bg2); }
 
     /* ═══════════════════════════════════════════════════
        INPUT SECTION
@@ -250,7 +257,7 @@
       margin: 0; padding: 16px;
       font-family: 'JetBrains Mono', monospace; font-size: .8rem;
       line-height: 1.65; color: var(--text1);
-      white-space: pre-wrap; word-break: break-all;
+      white-space: pre-wrap; overflow-wrap: anywhere;
       overflow-x: auto; max-height: 400px;
     }
 
@@ -382,6 +389,19 @@
       transition: opacity .2s, transform .2s; pointer-events: none;
     }
     .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ═══════════════════════════════════════════════════
+       FOOTER
+    ═══════════════════════════════════════════════════ */
+    .site-footer {
+      border-top: 1px solid var(--border); padding: 16px 24px;
+      text-align: center; font-size: .75rem; color: var(--text3);
+    }
+    .footer-link {
+      color: var(--text3); text-decoration: none;
+      transition: color .15s;
+    }
+    .footer-link:hover { color: var(--text2); }
   </style>
 </head>
 <body>
@@ -420,7 +440,7 @@
     <div class="key-row">
       <span class="key-label">🔑 OpenAI API Key</span>
       <input type="password" id="api-key" class="key-input" placeholder="sk-..." autocomplete="off">
-      <select id="model-select" style="background:var(--bg0);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text1);font-size:.78rem;outline:none;cursor:pointer;flex-shrink:0">
+      <select id="model-select" class="key-select">
         <option value="gpt-4o-mini">gpt-4o-mini (fast)</option>
         <option value="gpt-4o">gpt-4o (best)</option>
       </select>
@@ -500,6 +520,8 @@
           <option value="splunk">Splunk first</option>
           <option value="sentinel">Sentinel / KQL first</option>
           <option value="elastic">Elastic first</option>
+          <option value="trend">Trend Vision One first</option>
+          <option value="defender">Defender XDR first</option>
         </select>
       </div>
     </div>
@@ -641,11 +663,11 @@
 
   </main>
 
-  <footer style="border-top:1px solid var(--border);padding:16px 24px;text-align:center;font-size:.75rem;color:var(--text3)">
-    <a href="https://dgiry.github.io/defang-ioc"     style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🧪 Defang IOC</a> ·
-    <a href="https://dgiry.github.io/ioc-pivot"      style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🔭 IOC Pivot</a> ·
-    <a href="https://dgiry.github.io/cve-enricher"   style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🔬 CVE Enricher</a> ·
-    <a href="https://dgiry.github.io/alert-explainer" style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🚨 Alert Explainer</a> ·
+  <footer class="site-footer">
+    <a href="https://dgiry.github.io/defang-ioc"     class="footer-link">🧪 Defang IOC</a> ·
+    <a href="https://dgiry.github.io/ioc-pivot"      class="footer-link">🔭 IOC Pivot</a> ·
+    <a href="https://dgiry.github.io/cve-enricher"   class="footer-link">🔬 CVE Enricher</a> ·
+    <a href="https://dgiry.github.io/alert-explainer" class="footer-link">🚨 Alert Explainer</a> ·
     100% client-side · MIT License
   </footer>
 

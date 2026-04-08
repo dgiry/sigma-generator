@@ -417,6 +417,10 @@
     <div class="key-row">
       <span class="key-label">🔑 OpenAI API Key</span>
       <input type="password" id="api-key" class="key-input" placeholder="sk-..." autocomplete="off">
+      <select id="model-select" style="background:var(--bg0);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text1);font-size:.78rem;outline:none;cursor:pointer;flex-shrink:0">
+        <option value="gpt-4o-mini">gpt-4o-mini (fast)</option>
+        <option value="gpt-4o">gpt-4o (best)</option>
+      </select>
       <span class="key-badge">Stored in localStorage · Never transmitted except to OpenAI</span>
     </div>
 
@@ -605,6 +609,14 @@
 
   </main>
 
+  <footer style="border-top:1px solid var(--border);padding:16px 24px;text-align:center;font-size:.75rem;color:var(--text3)">
+    <a href="https://dgiry.github.io/defang-ioc"     style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🧪 Defang IOC</a> ·
+    <a href="https://dgiry.github.io/ioc-pivot"      style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🔭 IOC Pivot</a> ·
+    <a href="https://dgiry.github.io/cve-enricher"   style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🔬 CVE Enricher</a> ·
+    <a href="https://dgiry.github.io/alert-explainer" style="color:var(--text3);text-decoration:none" onmouseover="this.style.color='var(--text2)'" onmouseout="this.style.color='var(--text3)'">🚨 Alert Explainer</a> ·
+    100% client-side · MIT License
+  </footer>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -703,7 +715,7 @@
           'Authorization': `Bearer ${key}`
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
+          model: document.getElementById('model-select').value,
           temperature: 0.2,
           response_format: { type: 'json_object' },
           messages: [

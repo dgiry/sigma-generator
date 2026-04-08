@@ -653,10 +653,16 @@
 
       </div>
 
-      <!-- Bridge to Alert Explainer -->
-      <div class="bridge-bar">
-        <span class="bridge-text">Have a <strong>raw alert</strong> that triggered this detection? Analyze it in Alert Explainer for full IOC extraction and investigation steps.</span>
-        <a href="https://dgiry.github.io/alert-explainer" class="btn-bridge" target="_blank">🚨 Open Alert Explainer →</a>
+      <!-- Bridge to Alert Explainer + Playbook Builder -->
+      <div class="bridge-bar" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:8px">
+          <span class="bridge-text">Have a <strong>raw alert</strong> that triggered this detection? Analyze it in Alert Explainer.</span>
+          <a href="https://dgiry.github.io/alert-explainer" class="btn-bridge" target="_blank">🚨 Open Alert Explainer →</a>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;flex-wrap:wrap;gap:8px;padding-top:8px;border-top:1px solid rgba(88,166,255,.12)">
+          <span class="bridge-text">Rule is in production? <strong>Build the IR playbook</strong> for when it fires.</span>
+          <a id="bridge-playbook" href="https://dgiry.github.io/playbook-builder" class="btn-bridge" target="_blank" style="color:#f0883e;border-color:rgba(240,136,62,.3);background:rgba(240,136,62,.06)">📖 Build Playbook →</a>
+        </div>
       </div>
 
     </div><!-- /results -->
@@ -664,10 +670,11 @@
   </main>
 
   <footer class="site-footer">
-    <a href="https://dgiry.github.io/defang-ioc"     class="footer-link">🧪 Defang IOC</a> ·
-    <a href="https://dgiry.github.io/ioc-pivot"      class="footer-link">🔭 IOC Pivot</a> ·
-    <a href="https://dgiry.github.io/cve-enricher"   class="footer-link">🔬 CVE Enricher</a> ·
-    <a href="https://dgiry.github.io/alert-explainer" class="footer-link">🚨 Alert Explainer</a> ·
+    <a href="https://dgiry.github.io/defang-ioc"       class="footer-link">🧪 Defang IOC</a> ·
+    <a href="https://dgiry.github.io/ioc-pivot"        class="footer-link">🔭 IOC Pivot</a> ·
+    <a href="https://dgiry.github.io/cve-enricher"     class="footer-link">🔬 CVE Enricher</a> ·
+    <a href="https://dgiry.github.io/alert-explainer"  class="footer-link">🚨 Alert Explainer</a> ·
+    <a href="https://dgiry.github.io/playbook-builder" class="footer-link">📖 Playbook Builder</a> ·
     100% client-side · MIT License
   </footer>
 
@@ -957,6 +964,13 @@ Return ONLY a valid JSON object with exactly these fields — no markdown, no co
     document.getElementById('conv-qradar').textContent   = r.qradar_aql     || '# Not available';
     document.getElementById('conv-trend').textContent    = r.trend_xdr      || '# Not available';
     document.getElementById('conv-defender').textContent = r.defender_xdr   || '# Not available';
+
+    // Wire playbook-builder bridge with encoded sigma rule
+    const sigmaText = r.sigma_rule || '';
+    if (sigmaText) {
+      const playbookUrl = 'https://dgiry.github.io/playbook-builder?sigma=' + encodeURIComponent(sigmaText);
+      document.getElementById('bridge-playbook').href = playbookUrl;
+    }
 
     showResults();
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });

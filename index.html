@@ -314,6 +314,7 @@
       border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px;
     }
     .explain-body { font-size: .85rem; color: var(--text2); line-height: 1.7; margin-top: 8px; }
+    #fp-list li { font-size: .83rem; color: var(--text2); line-height: 1.55; }
 
     /* ── Alert Explainer bridge ───────────────────────── */
     .bridge-bar {
@@ -535,6 +536,12 @@
         <div class="mitre-grid" id="mitre-grid"></div>
       </div>
 
+      <!-- False positives -->
+      <div class="explain-section" id="fp-section" style="display:none">
+        <div class="section-label">⚠️ False positive scenarios</div>
+        <ul id="fp-list" style="margin-top:10px;padding-left:1.2rem;display:flex;flex-direction:column;gap:5px"></ul>
+      </div>
+
       <!-- SIGMA rule -->
       <div class="sigma-card">
         <div class="sigma-header">
@@ -544,6 +551,7 @@
           </div>
           <div class="sigma-actions">
             <button class="btn-copy" id="copy-sigma" onclick="copyBlock('sigma-pre', 'copy-sigma')">Copy</button>
+            <button class="btn-copy" onclick="downloadSigma()" title="Download as .yml">⬇ .yml</button>
           </div>
         </div>
         <pre class="sigma-pre" id="sigma-pre"></pre>
@@ -760,56 +768,82 @@
   ═══════════════════════════════════════════════════════════ */
   function buildPrompt(input, logsource, confidence, primary) {
     const inputTypeHint = currentTab === 'description'
-      ? 'The user described an attack behavior in plain English.'
+      ? 'The user described an attack behavior in plain English. Infer the most relevant log source, event fields, and detection logic from the description.'
       : currentTab === 'log'
-      ? 'The user pasted a raw log line or SIEM alert. Infer the behavior from it.'
-      : 'The user provided IOCs. Create a detection rule that identifies these IOCs in logs.';
+      ? 'The user pasted a raw log line or SIEM alert. Extract the key fields, behavior, and attacker technique, then build a detection rule that generalizes it — not one that only matches this exact log.'
+      : 'The user provided one or more IOCs (IPs, domains, hashes, registry keys, command patterns). Build a detection rule that identifies these IOCs across relevant log sources.';
 
     const lsHint = logsource === 'auto'
-      ? 'Auto-detect the appropriate log source from the input.'
-      : `Use log source: ${logsource}.`;
+      ? 'Auto-detect the most appropriate log source from the input (prefer specific categories like process_creation, network_connection, registry_set over generic ones).'
+      : `Use log source: ${logsource}. Override auto-detection.`;
 
     const confHint = {
-      high: 'Prefer high-confidence, specific conditions to minimize false positives.',
-      low:  'Cast a wide net — use OR conditions and wildcards to maximize coverage.',
-      medium: 'Balance specificity and coverage (default).'
+      high:   'HIGH CONFIDENCE mode: use specific field values, exact process names, and AND conditions. Avoid wildcards unless essential. Minimize false positives — it is better to miss edge cases than to flood analysts with noise.',
+      low:    'LOW CONFIDENCE mode: cast a wide net. Use OR conditions, wildcards (*), and multiple alternative patterns. Maximize coverage — some false positives are acceptable.',
+      medium: 'MEDIUM CONFIDENCE mode: balance specificity and coverage. Use a few specific conditions combined with reasonable wildcards. Aim for <5% false positive rate.'
     }[confidence];
 
-    return `${inputTypeHint}
+    const primaryHint = primary !== 'all'
+      ? `Prioritize ${primary} — make its query the most complete and idiomatic. Others can be shorter but must still be runnable.`
+      : 'All platform queries must be complete and directly usable.';
 
-Input:
+    return `You are a senior detection engineer with deep expertise in SIGMA rules, MITRE ATT&CK, and SIEM query languages. Your output will be used directly in production detection pipelines — quality and accuracy are critical.
+
+INPUT TYPE: ${inputTypeHint}
+
+INPUT:
 """
 ${input}
 """
 
-${lsHint} ${confHint}
-${primary !== 'all' ? `Prioritize ${primary} platform conversion.` : ''}
+CONSTRAINTS:
+- ${lsHint}
+- ${confHint}
+- ${primaryHint}
 
-Return a JSON object with exactly these fields:
+SIGMA RULE REQUIREMENTS:
+- Must be complete valid YAML — every required field present: title, id (random UUIDv4), status: experimental, description, references (if known), author: "SIGMA Generator", date (today), logsource, detection, falsepositives, level
+- detection block must have: keywords or field conditions in 'selection', optional 'filter' for exclusions, and a 'condition' that combines them (e.g. "selection and not filter")
+- Use real field names for the log source (e.g. Image, CommandLine, ParentImage for Sysmon process_creation; EventID for Windows Security)
+- level: critical | high | medium | low — match the actual severity of the technique
+- Do NOT use placeholder field values like <value> or YOUR_DOMAIN
+
+MITRE ATT&CK REQUIREMENTS:
+- Map ALL relevant techniques — minimum 2 for any non-trivial behavior, up to 5 for complex chains
+- Include sub-techniques where applicable (e.g. T1003.001 not just T1003)
+- URL format: https://attack.mitre.org/techniques/T1059/001/ (slashes, trailing slash)
+
+FALSE POSITIVES REQUIREMENTS:
+- List 3-5 specific, realistic false positive scenarios for THIS detection
+- Be concrete: name actual tools, processes, or admin behaviors that could trigger the rule
+- Example format: "Security scanners like Nessus or Qualys opening LSASS handles during vulnerability scans"
+
+EXPLANATION REQUIREMENTS:
+- 2-3 sentences: what the rule detects, why it matters (attacker objective), and one key thing to investigate if it fires
+
+Return ONLY a valid JSON object with exactly these fields — no markdown, no code fences, no explanation outside JSON:
 
 {
-  "rule_title": "Short descriptive title (max 10 words)",
-  "rule_description": "One sentence description of what this detects",
-  "explanation": "2-3 sentences explaining what the rule detects, why it matters, and what to investigate if it fires",
+  "rule_title": "Short descriptive title (max 10 words, no quotes in the string)",
+  "rule_description": "One sentence — what this detects",
+  "explanation": "2-3 sentences: what it detects, attacker objective, key investigation pivot",
   "mitre_techniques": [
-    { "id": "T1059.001", "name": "PowerShell", "url": "https://attack.mitre.org/techniques/T1059/001/" }
+    { "id": "T1059.001", "name": "Command and Scripting Interpreter: PowerShell", "url": "https://attack.mitre.org/techniques/T1059/001/" }
   ],
-  "logsource_category": "The detected/inferred log source (e.g. 'process_creation', 'network_connection', 'authentication')",
-  "logsource_product":  "The product (e.g. 'windows', 'linux', 'aws')",
-  "confidence_level": "low|medium|high",
-  "sigma_rule": "Complete valid SIGMA rule in YAML format — title, id, status, description, logsource, detection, falsepositives, level",
-  "splunk_spl": "Splunk SPL search query (complete, runnable)",
-  "kql": "Microsoft KQL query for Sentinel (complete, runnable)",
-  "elastic_dsl": "Elastic EQL or DSL query (complete, runnable)",
-  "qradar_aql": "QRadar AQL query (complete, runnable)",
-  "false_positives": ["list of common false positive scenarios"]
-}
-
-Rules:
-- sigma_rule MUST be complete valid YAML — include id (random UUID), status: experimental, author, date
-- All queries must be complete and directly usable — no placeholders
-- MITRE technique URLs: use slashes not dots for sub-techniques (T1059.001 → /T1059/001/)
-- Return ONLY the JSON object, no markdown, no code fences`;
+  "logsource_category": "process_creation",
+  "logsource_product": "windows",
+  "confidence_level": "high|medium|low",
+  "sigma_rule": "--- (complete valid SIGMA YAML here)",
+  "splunk_spl": "index=* ... (complete runnable SPL)",
+  "kql": "SecurityEvent | where ... (complete runnable KQL)",
+  "elastic_dsl": "process where ... (complete runnable EQL or DSL)",
+  "qradar_aql": "SELECT ... FROM ... (complete runnable AQL)",
+  "false_positives": [
+    "Specific realistic scenario 1",
+    "Specific realistic scenario 2",
+    "Specific realistic scenario 3"
+  ]
+}`;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -846,6 +880,17 @@ Rules:
     });
     if (!r.mitre_techniques?.length) mg.innerHTML = '<span style="font-size:.8rem;color:var(--text3)">No techniques mapped</span>';
 
+    // False positives
+    const fps = r.false_positives || [];
+    const fpSection = document.getElementById('fp-section');
+    const fpList    = document.getElementById('fp-list');
+    if (fps.length) {
+      fpList.innerHTML = fps.map(fp => `<li>${escHtml(fp)}</li>`).join('');
+      fpSection.style.display = 'block';
+    } else {
+      fpSection.style.display = 'none';
+    }
+
     // SIGMA
     document.getElementById('sigma-pre').textContent = r.sigma_rule || '';
 
@@ -857,6 +902,26 @@ Rules:
 
     showResults();
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     DOWNLOAD
+  ═══════════════════════════════════════════════════════════ */
+  function downloadSigma() {
+    const content = document.getElementById('sigma-pre').textContent.trim();
+    if (!content) { toast('No rule to download yet'); return; }
+    const titleMatch = content.match(/^title:\s*(.+)/m);
+    const slug = titleMatch
+      ? titleMatch[1].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+      : 'sigma-rule';
+    const ts  = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+    const blob = new Blob([content], { type: 'text/yaml;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `${slug}-${ts}.yml`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    toast('Rule downloaded ✓');
   }
 
   /* ═══════════════════════════════════════════════════════════

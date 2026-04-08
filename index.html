@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIGMA Rule Generator — Describe an attack. Get a detection rule.</title>
+  <meta name="description" content="Describe an attack in plain English, paste a log line, or drop an IOC — and get a valid SIGMA rule with Splunk SPL, KQL, Elastic DSL and QRadar AQL conversions. AI-powered, 100% client-side.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; scroll-behavior: smooth; }
+    body {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       VARIABLES
+    ═══════════════════════════════════════════════════ */
+    :root {
+      --accent:      #58a6ff;
+      --accent-dim:  rgba(88,166,255,.12);
+      --accent-bdr:  rgba(88,166,255,.25);
+      --success:     #3fb950;
+      --warn:        #d29922;
+      --danger:      #f85149;
+      --purple:      #a371f7;
+      --bg0:         #0d1117;
+      --bg1:         #161b22;
+      --bg2:         #1c2128;
+      --bg3:         #21262d;
+      --border:      rgba(48,54,61,1);
+      --border-soft: rgba(48,54,61,.7);
+      --text1:       #e6edf3;
+      --text2:       #8b949e;
+      --text3:       #6e7681;
+      --radius:      10px;
+      --shadow:      0 4px 20px rgba(0,0,0,.4);
+    }
+
+    /* ═══════════════════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════════════════ */
+    .app-header {
+      background: var(--bg1);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-brand { display: flex; align-items: center; gap: 10px; }
+    .header-brand .logo { font-size: 1.25rem; }
+    .header-brand .name { font-weight: 700; font-size: .95rem; color: var(--text1); }
+    .header-brand .tagline { font-size: .75rem; color: var(--text2); }
+    .header-links { display: flex; align-items: center; gap: 8px; }
+    .header-link {
+      font-size: .78rem; font-weight: 500; color: var(--text2);
+      text-decoration: none; padding: 5px 10px; border-radius: 6px;
+      transition: color .15s, background .15s;
+    }
+    .header-link:hover { color: var(--text1); background: var(--bg3); }
+
+    .main-wrap { max-width: 920px; margin: 0 auto; padding: 36px 20px 80px; }
+
+    /* ═══════════════════════════════════════════════════
+       INTRO + API KEY
+    ═══════════════════════════════════════════════════ */
+    .intro-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 24px;
+    }
+    .intro-icon { font-size: 2rem; flex-shrink: 0; line-height: 1; }
+    .intro-title { font-weight: 700; font-size: 1.05rem; margin-bottom: 4px; }
+    .intro-sub { font-size: .82rem; color: var(--text2); line-height: 1.55; }
+
+    .key-row {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px; margin-bottom: 24px;
+    }
+    .key-label { font-size: .8rem; font-weight: 600; color: var(--text2); flex-shrink: 0; }
+    .key-input {
+      flex: 1; min-width: 220px;
+      background: var(--bg0); border: 1px solid var(--border);
+      border-radius: 7px; padding: 7px 12px;
+      color: var(--text1); font-size: .82rem; font-family: 'JetBrains Mono', monospace;
+      outline: none; transition: border-color .15s;
+    }
+    .key-input:focus { border-color: var(--accent); }
+    .key-badge { font-size: .72rem; color: var(--text3); }
+
+    /* ═══════════════════════════════════════════════════
+       INPUT SECTION
+    ═══════════════════════════════════════════════════ */
+    .section-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 8px;
+    }
+
+    .input-card {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; margin-bottom: 20px;
+    }
+
+    /* Input type tabs */
+    .input-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .input-tab {
+      padding: 9px 16px; font-size: .8rem; font-weight: 600; cursor: pointer;
+      color: var(--text2); border: none; background: none;
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+      transition: color .15s, border-color .15s;
+    }
+    .input-tab:hover { color: var(--text1); }
+    .input-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .input-body { padding: 16px; }
+
+    .main-textarea {
+      width: 100%; background: var(--bg0); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+      color: var(--text1); font-size: .85rem; font-family: 'JetBrains Mono', monospace;
+      line-height: 1.6; resize: vertical; min-height: 130px;
+      outline: none; transition: border-color .15s;
+    }
+    .main-textarea:focus { border-color: var(--accent-bdr); }
+    .main-textarea::placeholder { color: var(--text3); font-family: 'Inter', sans-serif; }
+
+    /* Examples row */
+    .examples-row {
+      display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px;
+    }
+    .example-chip {
+      font-size: .75rem; font-weight: 500; color: var(--text2);
+      background: var(--bg2); border: 1px solid var(--border-soft);
+      border-radius: 6px; padding: 4px 10px; cursor: pointer;
+      transition: all .15s;
+    }
+    .example-chip:hover { color: var(--text1); border-color: var(--accent-bdr); background: var(--accent-dim); }
+
+    /* ═══════════════════════════════════════════════════
+       OPTIONS ROW
+    ═══════════════════════════════════════════════════ */
+    .options-row {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+      margin-bottom: 20px;
+    }
+    .opt-group {
+      display: flex; gap: 6px; align-items: center;
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 12px;
+    }
+    .opt-label { font-size: .75rem; color: var(--text2); font-weight: 500; flex-shrink: 0; }
+    .opt-select {
+      background: none; border: none; color: var(--text1);
+      font-size: .8rem; font-weight: 600; cursor: pointer; outline: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .opt-select option { background: var(--bg2); }
+
+    /* ═══════════════════════════════════════════════════
+       GENERATE BUTTON
+    ═══════════════════════════════════════════════════ */
+    .btn-generate {
+      width: 100%; padding: 13px 24px;
+      background: var(--accent); color: #000;
+      border: none; border-radius: 9px; cursor: pointer;
+      font-size: .9rem; font-weight: 700; font-family: 'Inter', sans-serif;
+      transition: opacity .15s, transform .15s, box-shadow .15s;
+      margin-bottom: 32px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-generate:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); box-shadow: 0 8px 30px rgba(88,166,255,.25); }
+    .btn-generate:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ═══════════════════════════════════════════════════
+       HISTORY CHIPS
+    ═══════════════════════════════════════════════════ */
+    .history-strip {
+      display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 24px;
+    }
+    .history-chip {
+      font-size: .73rem; font-weight: 500; color: var(--text2);
+      background: var(--bg1); border: 1px solid var(--border-soft);
+      border-radius: 6px; padding: 3px 9px; cursor: pointer;
+      max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      transition: all .15s;
+    }
+    .history-chip:hover { color: var(--text1); border-color: var(--accent-bdr); }
+
+    /* ═══════════════════════════════════════════════════
+       RESULTS SECTION
+    ═══════════════════════════════════════════════════ */
+    #results { display: none; }
+
+    /* ── Status bar ───────────────────────────────────── */
+    .status-bar {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 18px; margin-bottom: 20px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 9999px;
+      font-size: .75rem; font-weight: 700; letter-spacing: .03em;
+    }
+    .status-ok   { background: rgba(63,185,80,.12); color: #3fb950; border: 1px solid rgba(63,185,80,.25); }
+    .status-warn { background: rgba(210,153,34,.12); color: #d29922; border: 1px solid rgba(210,153,34,.25); }
+    .dot-pulse { width: 7px; height: 7px; border-radius: 50%; animation: pulse-dot 1.2s ease-in-out infinite; }
+    .dot-ok   { background: #3fb950; }
+    .dot-warn { background: #d29922; }
+    @keyframes pulse-dot { 0%,100%{opacity:1}50%{opacity:.35} }
+
+    /* ── SIGMA output ─────────────────────────────────── */
+    .sigma-card {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 20px; overflow: hidden;
+    }
+    .sigma-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .sigma-title { font-weight: 700; font-size: .85rem; display: flex; align-items: center; gap: 8px; }
+    .sigma-actions { display: flex; gap: 8px; }
+    .btn-copy {
+      font-size: .75rem; font-weight: 600; color: var(--text2);
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 10px; cursor: pointer;
+      transition: all .15s; font-family: 'Inter', sans-serif;
+    }
+    .btn-copy:hover { color: var(--text1); border-color: var(--accent-bdr); }
+    .btn-copy.copied { color: var(--success); border-color: rgba(63,185,80,.3); }
+
+    pre.sigma-pre {
+      margin: 0; padding: 16px;
+      font-family: 'JetBrains Mono', monospace; font-size: .8rem;
+      line-height: 1.65; color: var(--text1);
+      white-space: pre-wrap; word-break: break-all;
+      overflow-x: auto; max-height: 400px;
+    }
+
+    /* Syntax coloring */
+    pre.sigma-pre .key    { color: #79c0ff; }
+    pre.sigma-pre .val    { color: #a5d6ff; }
+    pre.sigma-pre .str    { color: #a8d8a8; }
+    pre.sigma-pre .num    { color: #ffa657; }
+    pre.sigma-pre .bool   { color: #ff7b72; }
+    pre.sigma-pre .comment{ color: var(--text3); font-style: italic; }
+
+    /* ── Query conversions ────────────────────────────── */
+    .conversions-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media(max-width:640px){ .conversions-grid{ grid-template-columns:1fr; } }
+
+    .conv-card {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .conv-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      background: var(--bg2);
+    }
+    .conv-platform { display: flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 700; }
+    .platform-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .pd-splunk  { background: #00a3e0; }
+    .pd-kql     { background: #0078d4; }
+    .pd-elastic { background: #f0ca4d; }
+    .pd-qradar  { background: #1d4ed8; }
+    pre.conv-pre {
+      margin: 0; padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace; font-size: .76rem;
+      line-height: 1.55; color: #a5d6ff;
+      white-space: pre-wrap; word-break: break-all;
+      max-height: 180px; overflow-y: auto;
+    }
+
+    /* ── MITRE section ────────────────────────────────── */
+    .mitre-section {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px;
+    }
+    .mitre-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .mitre-chip {
+      display: inline-flex; flex-direction: column; gap: 2px;
+      padding: 8px 12px; border-radius: 8px;
+      background: rgba(163,113,247,.08); border: 1px solid rgba(163,113,247,.25);
+      text-decoration: none; transition: all .15s;
+    }
+    .mitre-chip:hover { background: rgba(163,113,247,.15); border-color: rgba(163,113,247,.4); }
+    .mitre-id { font-family: 'JetBrains Mono', monospace; font-size: .75rem; font-weight: 700; color: var(--purple); }
+    .mitre-name { font-size: .71rem; color: var(--text2); }
+
+    /* ── Explanation ──────────────────────────────────── */
+    .explain-section {
+      background: var(--bg1); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px; margin-bottom: 20px;
+    }
+    .explain-body { font-size: .85rem; color: var(--text2); line-height: 1.7; margin-top: 8px; }
+
+    /* ── Alert Explainer bridge ───────────────────────── */
+    .bridge-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(88,166,255,.06); border: 1px solid rgba(88,166,255,.2);
+      border-radius: var(--radius); padding: 12px 16px; margin-top: 24px;
+      flex-wrap: wrap; gap: 10px;
+    }
+    .bridge-text { font-size: .82rem; color: var(--text2); }
+    .bridge-text strong { color: var(--text1); }
+    .btn-bridge {
+      font-size: .78rem; font-weight: 600; color: var(--accent);
+      background: var(--accent-dim); border: 1px solid var(--accent-bdr);
+      border-radius: 7px; padding: 6px 14px; cursor: pointer;
+      text-decoration: none; transition: all .15s; font-family: 'Inter', sans-serif;
+    }
+    .btn-bridge:hover { background: rgba(88,166,255,.2); }
+
+    /* ═══════════════════════════════════════════════════
+       LOADING SPINNER
+    ═══════════════════════════════════════════════════ */
+    #loading { display: none; }
+    .spinner-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      padding: 48px 24px;
+    }
+    .spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid var(--bg3);
+      border-top-color: var(--accent);
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to{ transform: rotate(360deg); } }
+    .spinner-text { font-size: .85rem; color: var(--text2); }
+
+    /* ═══════════════════════════════════════════════════
+       ERROR
+    ═══════════════════════════════════════════════════ */
+    .error-box {
+      display: none; background: rgba(248,81,73,.07);
+      border: 1px solid rgba(248,81,73,.25);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px;
+      font-size: .85rem; color: #fca5a5;
+    }
+
+    /* ═══════════════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════════════ */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg1); }
+    ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+
+    /* ═══════════════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════════════ */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 18px;
+      font-size: .82rem; font-weight: 600; color: var(--text1);
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      opacity: 0; transform: translateY(10px);
+      transition: opacity .2s, transform .2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ───────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="logo">✍️</span>
+      <div>
+        <div class="name">SIGMA Rule Generator</div>
+        <div class="tagline">Describe an attack. Get a detection rule.</div>
+      </div>
+    </div>
+    <nav class="header-links">
+      <a href="https://dgiry.github.io/alert-explainer" class="header-link" title="Alert Explainer">🚨 Alert Explainer</a>
+      <a href="https://dgiry.github.io/cve-enricher" class="header-link" title="CVE Enricher">🔬 CVE Enricher</a>
+      <a href="https://dgiry.github.io/ioc-pivot" class="header-link" title="IOC Pivot Hub">🔭 IOC Pivot</a>
+    </nav>
+  </header>
+
+  <!-- ── Main ─────────────────────────────────────────────────── -->
+  <main class="main-wrap">
+
+    <!-- Intro -->
+    <div class="intro-row">
+      <div class="intro-icon">✍️</div>
+      <div>
+        <div class="intro-title">SIGMA Rule Generator</div>
+        <div class="intro-sub">
+          Describe an attack in plain English, paste a log line, drop a raw alert, or enter an IOC — and get a valid SIGMA detection rule with Splunk SPL, Microsoft KQL, Elastic DSL, and QRadar AQL conversions. 100% client-side. No data sent anywhere except OpenAI.
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <div class="key-row">
+      <span class="key-label">🔑 OpenAI API Key</span>
+      <input type="password" id="api-key" class="key-input" placeholder="sk-..." autocomplete="off">
+      <span class="key-badge">Stored in localStorage · Never transmitted except to OpenAI</span>
+    </div>
+
+    <!-- Error -->
+    <div class="error-box" id="error-box"></div>
+
+    <!-- Input card -->
+    <div class="input-card">
+      <div class="input-tabs">
+        <button class="input-tab active" data-tab="description" onclick="switchTab('description')">💬 Description</button>
+        <button class="input-tab" data-tab="log" onclick="switchTab('log')">📋 Log / Alert</button>
+        <button class="input-tab" data-tab="ioc" onclick="switchTab('ioc')">🔍 IOC</button>
+      </div>
+
+      <div class="input-body">
+        <!-- Description tab -->
+        <div id="tab-description">
+          <textarea class="main-textarea" id="input-description"
+            placeholder="Describe the attack or behavior to detect…&#10;&#10;Examples:&#10;• PowerShell downloading a file from the internet and executing it&#10;• Credential dumping via lsass memory access&#10;• Lateral movement using PsExec with explicit credentials&#10;• Process injection into a browser process"
+            rows="6"></textarea>
+          <div class="examples-row">
+            <span class="section-label" style="margin-bottom:0;align-self:center">Examples:</span>
+            <button class="example-chip" onclick="loadExample('powershell_download')">PowerShell download + exec</button>
+            <button class="example-chip" onclick="loadExample('lsass_dump')">LSASS credential dump</button>
+            <button class="example-chip" onclick="loadExample('psexec_lateral')">PsExec lateral movement</button>
+            <button class="example-chip" onclick="loadExample('process_injection')">Process injection</button>
+            <button class="example-chip" onclick="loadExample('rdp_brute')">RDP brute force</button>
+          </div>
+        </div>
+
+        <!-- Log tab -->
+        <div id="tab-log" style="display:none">
+          <textarea class="main-textarea" id="input-log"
+            placeholder="Paste a log line, SIEM alert, Windows Event, or Sysmon event…&#10;&#10;Examples:&#10;• JSON from CrowdStrike / Sentinel / Splunk&#10;• Sysmon EventID 1 (process creation) or EventID 8 (CreateRemoteThread)&#10;• Windows Event Log entry&#10;• Raw CEF/LEEF line"
+            rows="7"></textarea>
+        </div>
+
+        <!-- IOC tab -->
+        <div id="tab-ioc" style="display:none">
+          <textarea class="main-textarea" id="input-ioc"
+            placeholder="Enter one or more IOCs to detect…&#10;&#10;Examples:&#10;• 185.220.101.47&#10;• evil-domain.ru&#10;• 44d88612fea8a8f36de82e1278abb02f (MD5 hash)&#10;• powershell.exe -enc JABj…&#10;• HKLM\Software\Microsoft\Windows\CurrentVersion\Run\Malware"
+            rows="6"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Options -->
+    <div class="options-row">
+      <div class="opt-group">
+        <span class="opt-label">Log source</span>
+        <select class="opt-select" id="opt-logsource">
+          <option value="auto">Auto-detect</option>
+          <option value="windows">Windows</option>
+          <option value="sysmon">Sysmon</option>
+          <option value="linux">Linux / Auditd</option>
+          <option value="network">Network / Firewall</option>
+          <option value="cloud">Cloud (AWS/Azure)</option>
+          <option value="webserver">Web Server</option>
+          <option value="proxy">Proxy</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <span class="opt-label">Confidence</span>
+        <select class="opt-select" id="opt-confidence">
+          <option value="medium">Medium (balanced)</option>
+          <option value="high">High (strict, low FP)</option>
+          <option value="low">Low (wide net)</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <span class="opt-label">Target SIEM</span>
+        <select class="opt-select" id="opt-primary">
+          <option value="all">All platforms</option>
+          <option value="splunk">Splunk first</option>
+          <option value="sentinel">Sentinel / KQL first</option>
+          <option value="elastic">Elastic first</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Generate button -->
+    <button class="btn-generate" id="btn-gen" onclick="generate()">
+      ✍️ Generate SIGMA Rule
+    </button>
+
+    <!-- History -->
+    <div class="history-strip" id="history-strip"></div>
+
+    <!-- Loading -->
+    <div id="loading">
+      <div class="spinner-wrap">
+        <div class="spinner"></div>
+        <div class="spinner-text">Generating SIGMA rule…</div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results">
+
+      <!-- Status bar -->
+      <div class="status-bar" id="status-bar"></div>
+
+      <!-- Explanation -->
+      <div class="explain-section" id="explain-section">
+        <div class="section-label">💬 What this detects</div>
+        <div class="explain-body" id="explain-body"></div>
+      </div>
+
+      <!-- MITRE ATT&CK -->
+      <div class="mitre-section" id="mitre-section">
+        <div class="section-label">🎯 MITRE ATT&amp;CK techniques</div>
+        <div class="mitre-grid" id="mitre-grid"></div>
+      </div>
+
+      <!-- SIGMA rule -->
+      <div class="sigma-card">
+        <div class="sigma-header">
+          <div class="sigma-title">
+            <span>📄</span>
+            <span>SIGMA Rule</span>
+          </div>
+          <div class="sigma-actions">
+            <button class="btn-copy" id="copy-sigma" onclick="copyBlock('sigma-pre', 'copy-sigma')">Copy</button>
+          </div>
+        </div>
+        <pre class="sigma-pre" id="sigma-pre"></pre>
+      </div>
+
+      <!-- Conversions -->
+      <div class="section-label" style="margin-bottom:12px">⚡ Platform conversions</div>
+      <div class="conversions-grid">
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-splunk"></span>
+              Splunk SPL
+            </div>
+            <button class="btn-copy" id="copy-splunk" onclick="copyBlock('conv-splunk', 'copy-splunk')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-splunk"></pre>
+        </div>
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-kql"></span>
+              Microsoft KQL (Sentinel)
+            </div>
+            <button class="btn-copy" id="copy-kql" onclick="copyBlock('conv-kql', 'copy-kql')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-kql"></pre>
+        </div>
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-elastic"></span>
+              Elastic DSL / EQL
+            </div>
+            <button class="btn-copy" id="copy-elastic" onclick="copyBlock('conv-elastic', 'copy-elastic')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-elastic"></pre>
+        </div>
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-qradar"></span>
+              QRadar AQL
+            </div>
+            <button class="btn-copy" id="copy-qradar" onclick="copyBlock('conv-qradar', 'copy-qradar')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-qradar"></pre>
+        </div>
+
+      </div>
+
+      <!-- Bridge to Alert Explainer -->
+      <div class="bridge-bar">
+        <span class="bridge-text">Have a <strong>raw alert</strong> that triggered this detection? Analyze it in Alert Explainer for full IOC extraction and investigation steps.</span>
+        <a href="https://dgiry.github.io/alert-explainer" class="btn-bridge" target="_blank">🚨 Open Alert Explainer →</a>
+      </div>
+
+    </div><!-- /results -->
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════
+     CONSTANTS
+  ═══════════════════════════════════════════════════════════ */
+  const KEY_STORAGE  = 'cv_oai_key';
+  const HIST_STORAGE = 'sg_history';
+  const MAX_HISTORY  = 5;
+
+  let currentTab = 'description';
+
+  /* ═══════════════════════════════════════════════════════════
+     EXAMPLES
+  ═══════════════════════════════════════════════════════════ */
+  const EXAMPLES = {
+    powershell_download: `PowerShell downloading a file from the internet and executing it.\n\nSpecifically: PowerShell using Invoke-WebRequest or DownloadFile to fetch a payload from an external URL, followed by Start-Process or Invoke-Expression to run it. Common in malware droppers and commodity RATs.`,
+
+    lsass_dump: `Credential dumping via direct memory access to lsass.exe.\n\nCovers: any process (other than known-good Windows tools) opening a handle to lsass.exe with PROCESS_VM_READ permissions, or using MiniDumpWriteDump. Should match Mimikatz, Procdump, Task Manager dump.`,
+
+    psexec_lateral: `Lateral movement using PsExec with explicit credentials.\n\nPattern: PsExec (psexec.exe or psexec64.exe) launched with -u/-p flags on a remote host. Also matches PAExec as an alternative. Commonly used by ransomware operators for pivoting.`,
+
+    process_injection: `Process injection via CreateRemoteThread into a browser process.\n\nSysmon EventID 8: SourceImage is NOT a browser, TargetImage is chrome.exe, msedge.exe, firefox.exe, or iexplore.exe. Classic technique for code injection and evasion.`,
+
+    rdp_brute: `RDP brute force attack — multiple failed authentication attempts on port 3389 followed by a successful login.\n\nWindows Security Event 4625 (failed logon, LogonType 10) spiking from a single source IP, followed by Event 4624 (successful logon) from the same source.`,
+  };
+
+  /* ═══════════════════════════════════════════════════════════
+     INIT
+  ═══════════════════════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem(KEY_STORAGE);
+    if (saved) document.getElementById('api-key').value = saved;
+
+    document.getElementById('api-key').addEventListener('change', e => {
+      const v = e.target.value.trim();
+      if (v) localStorage.setItem(KEY_STORAGE, v);
+    });
+
+    renderHistory();
+
+    // Support ?input= or ?description= query param from Alert Explainer
+    const params = new URLSearchParams(location.search);
+    const pre = params.get('input') || params.get('description') || params.get('alert');
+    if (pre) {
+      document.getElementById('input-description').value = decodeURIComponent(pre);
+    }
+  });
+
+  /* ═══════════════════════════════════════════════════════════
+     TAB SWITCHING
+  ═══════════════════════════════════════════════════════════ */
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.input-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    ['description','log','ioc'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = t === tab ? '' : 'none';
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     EXAMPLES
+  ═══════════════════════════════════════════════════════════ */
+  function loadExample(key) {
+    switchTab('description');
+    document.getElementById('input-description').value = EXAMPLES[key] || '';
+    document.getElementById('input-description').focus();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     GENERATE
+  ═══════════════════════════════════════════════════════════ */
+  async function generate() {
+    const key = (document.getElementById('api-key').value.trim() ||
+                 localStorage.getItem(KEY_STORAGE) || '');
+    if (!key) { showError('Enter your OpenAI API key above.'); return; }
+
+    const input = getInput();
+    if (!input) { showError('Enter a description, log line, or IOC above.'); return; }
+
+    const logsource  = document.getElementById('opt-logsource').value;
+    const confidence = document.getElementById('opt-confidence').value;
+    const primary    = document.getElementById('opt-primary').value;
+
+    hideError();
+    setLoading(true);
+    hideResults();
+
+    const prompt = buildPrompt(input, logsource, confidence, primary);
+
+    try {
+      const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${key}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          temperature: 0.2,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: 'You are an expert detection engineer. Output JSON only.' },
+            { role: 'user',   content: prompt }
+          ]
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error?.message || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const raw  = data.choices?.[0]?.message?.content || '{}';
+      const r    = JSON.parse(raw);
+
+      if (!r.sigma_rule) throw new Error('AI did not return a SIGMA rule. Try rephrasing your input.');
+
+      localStorage.setItem(KEY_STORAGE, key);
+      saveHistory({ input: input.slice(0, 80), title: r.rule_title || 'Detection rule' });
+      renderResults(r, input);
+
+    } catch(e) {
+      showError('Error: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     INPUT HELPER
+  ═══════════════════════════════════════════════════════════ */
+  function getInput() {
+    const map = { description: 'input-description', log: 'input-log', ioc: 'input-ioc' };
+    return (document.getElementById(map[currentTab])?.value || '').trim();
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PROMPT BUILDER
+  ═══════════════════════════════════════════════════════════ */
+  function buildPrompt(input, logsource, confidence, primary) {
+    const inputTypeHint = currentTab === 'description'
+      ? 'The user described an attack behavior in plain English.'
+      : currentTab === 'log'
+      ? 'The user pasted a raw log line or SIEM alert. Infer the behavior from it.'
+      : 'The user provided IOCs. Create a detection rule that identifies these IOCs in logs.';
+
+    const lsHint = logsource === 'auto'
+      ? 'Auto-detect the appropriate log source from the input.'
+      : `Use log source: ${logsource}.`;
+
+    const confHint = {
+      high: 'Prefer high-confidence, specific conditions to minimize false positives.',
+      low:  'Cast a wide net — use OR conditions and wildcards to maximize coverage.',
+      medium: 'Balance specificity and coverage (default).'
+    }[confidence];
+
+    return `${inputTypeHint}
+
+Input:
+"""
+${input}
+"""
+
+${lsHint} ${confHint}
+${primary !== 'all' ? `Prioritize ${primary} platform conversion.` : ''}
+
+Return a JSON object with exactly these fields:
+
+{
+  "rule_title": "Short descriptive title (max 10 words)",
+  "rule_description": "One sentence description of what this detects",
+  "explanation": "2-3 sentences explaining what the rule detects, why it matters, and what to investigate if it fires",
+  "mitre_techniques": [
+    { "id": "T1059.001", "name": "PowerShell", "url": "https://attack.mitre.org/techniques/T1059/001/" }
+  ],
+  "logsource_category": "The detected/inferred log source (e.g. 'process_creation', 'network_connection', 'authentication')",
+  "logsource_product":  "The product (e.g. 'windows', 'linux', 'aws')",
+  "confidence_level": "low|medium|high",
+  "sigma_rule": "Complete valid SIGMA rule in YAML format — title, id, status, description, logsource, detection, falsepositives, level",
+  "splunk_spl": "Splunk SPL search query (complete, runnable)",
+  "kql": "Microsoft KQL query for Sentinel (complete, runnable)",
+  "elastic_dsl": "Elastic EQL or DSL query (complete, runnable)",
+  "qradar_aql": "QRadar AQL query (complete, runnable)",
+  "false_positives": ["list of common false positive scenarios"]
+}
+
+Rules:
+- sigma_rule MUST be complete valid YAML — include id (random UUID), status: experimental, author, date
+- All queries must be complete and directly usable — no placeholders
+- MITRE technique URLs: use slashes not dots for sub-techniques (T1059.001 → /T1059/001/)
+- Return ONLY the JSON object, no markdown, no code fences`;
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     RENDER RESULTS
+  ═══════════════════════════════════════════════════════════ */
+  function renderResults(r, input) {
+    // Status bar
+    const confColor = { high: '#3fb950', medium: '#d29922', low: '#f85149' }[r.confidence_level] || '#d29922';
+    const confLabel = r.confidence_level ? r.confidence_level.toUpperCase() : 'MEDIUM';
+    document.getElementById('status-bar').innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="status-pill status-ok"><span class="dot-pulse dot-ok"></span>Rule generated</span>
+        <span style="font-size:.8rem;font-weight:700;color:${confColor}">Confidence: ${confLabel}</span>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2)">
+        Log source: <strong style="color:var(--text1)">${r.logsource_product || ''} / ${r.logsource_category || 'auto'}</strong>
+        ${r.rule_title ? `· <strong style="color:var(--text1)">${escHtml(r.rule_title)}</strong>` : ''}
+      </div>
+    `;
+
+    // Explanation
+    document.getElementById('explain-body').textContent = r.explanation || r.rule_description || '';
+
+    // MITRE
+    const mg = document.getElementById('mitre-grid');
+    mg.innerHTML = '';
+    (r.mitre_techniques || []).forEach(t => {
+      const url = t.url || `https://attack.mitre.org/techniques/${t.id.replace('.','/')}`;
+      mg.innerHTML += `
+        <a href="${url}" target="_blank" rel="noopener" class="mitre-chip">
+          <span class="mitre-id">${escHtml(t.id)}</span>
+          <span class="mitre-name">${escHtml(t.name || '')}</span>
+        </a>`;
+    });
+    if (!r.mitre_techniques?.length) mg.innerHTML = '<span style="font-size:.8rem;color:var(--text3)">No techniques mapped</span>';
+
+    // SIGMA
+    document.getElementById('sigma-pre').textContent = r.sigma_rule || '';
+
+    // Conversions
+    document.getElementById('conv-splunk').textContent  = r.splunk_spl    || '# Not available';
+    document.getElementById('conv-kql').textContent     = r.kql            || '# Not available';
+    document.getElementById('conv-elastic').textContent = r.elastic_dsl    || '# Not available';
+    document.getElementById('conv-qradar').textContent  = r.qradar_aql     || '# Not available';
+
+    showResults();
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     COPY
+  ═══════════════════════════════════════════════════════════ */
+  function copyBlock(preId, btnId) {
+    const text = document.getElementById(preId)?.textContent || '';
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById(btnId);
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+    });
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     HISTORY
+  ═══════════════════════════════════════════════════════════ */
+  function saveHistory(entry) {
+    let h = [];
+    try { h = JSON.parse(localStorage.getItem(HIST_STORAGE) || '[]'); } catch {}
+    h.unshift(entry);
+    h = h.slice(0, MAX_HISTORY);
+    localStorage.setItem(HIST_STORAGE, JSON.stringify(h));
+    renderHistory();
+  }
+
+  function renderHistory() {
+    let h = [];
+    try { h = JSON.parse(localStorage.getItem(HIST_STORAGE) || '[]'); } catch {}
+    const strip = document.getElementById('history-strip');
+    if (!h.length) { strip.innerHTML = ''; return; }
+    strip.innerHTML = '<span style="font-size:.72rem;color:var(--text3);align-self:center;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Recent:</span>' +
+      h.map((e,i) => `<button class="history-chip" onclick="loadFromHistory(${i})" title="${escHtml(e.input)}">${escHtml(e.title || e.input)}</button>`).join('');
+  }
+
+  function loadFromHistory(i) {
+    let h = [];
+    try { h = JSON.parse(localStorage.getItem(HIST_STORAGE) || '[]'); } catch {}
+    const e = h[i];
+    if (!e) return;
+    switchTab('description');
+    document.getElementById('input-description').value = e.input || '';
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     UI HELPERS
+  ═══════════════════════════════════════════════════════════ */
+  function setLoading(on) {
+    document.getElementById('loading').style.display = on ? 'block' : 'none';
+    document.getElementById('btn-gen').disabled = on;
+  }
+  function showResults()  { document.getElementById('results').style.display = 'block'; }
+  function hideResults()  { document.getElementById('results').style.display = 'none'; }
+  function showError(msg) {
+    const el = document.getElementById('error-box');
+    el.textContent = msg; el.style.display = 'block';
+  }
+  function hideError() {
+    document.getElementById('error-box').style.display = 'none';
+  }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+  </script>
+</body>
+</html>

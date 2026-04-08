@@ -8,7 +8,7 @@
 
 ## What it does
 
-Describe an attack in plain English, paste a raw log / alert, or enter an IOC — and get a complete, ready-to-use SIGMA detection rule plus platform conversions.
+Describe an attack in plain English, paste a raw log / alert, or enter an IOC — and get a complete, ready-to-use SIGMA detection rule plus 6 platform conversions.
 
 | Input | Example |
 |-------|---------|
@@ -18,13 +18,17 @@ Describe an attack in plain English, paste a raw log / alert, or enter an IOC �
 
 | Output | Description |
 |--------|-------------|
-| **SIGMA rule** | Complete valid YAML — title, id, status, logsource, detection, falsepositives, level |
+| **SIGMA rule** | Complete valid YAML — title, UUID, status, logsource, detection block, falsepositives, level |
+| **⬇ Download .yml** | One-click download with slug-based filename |
 | **Splunk SPL** | Ready-to-run SPL search query |
-| **Microsoft KQL** | Sentinel / Defender query |
-| **Elastic DSL / EQL** | Elastic Security query |
-| **QRadar AQL** | IBM QRadar query |
-| **MITRE ATT&CK** | Mapped techniques with clickable links |
-| **Explanation** | What it detects, why it matters, what to investigate |
+| **Microsoft KQL (Sentinel)** | Sentinel / Log Analytics KQL query |
+| **Elastic DSL / EQL** | Elastic Security EQL or DSL query |
+| **QRadar AQL** | IBM QRadar AQL query |
+| **Trend Vision One XDR** | Search App query — processCmd, processFilePath, eventSubId syntax |
+| **Microsoft Defender XDR** | Advanced Hunting KQL — DeviceProcessEvents, DeviceNetworkEvents, DeviceFileEvents |
+| **MITRE ATT&CK** | Min. 2 techniques mapped, sub-techniques included, clickable links |
+| **False positives** | 3–5 concrete realistic scenarios surfaced per rule |
+| **Explanation** | What it detects, why it matters, what to investigate first |
 
 ---
 
@@ -33,19 +37,20 @@ Describe an attack in plain English, paste a raw log / alert, or enter an IOC �
 | Option | Values | Description |
 |--------|--------|-------------|
 | **Log source** | Auto / Windows / Sysmon / Linux / Network / Cloud / Web / Proxy | Override source detection |
-| **Confidence** | High (strict) / Medium / Low (wide net) | Controls specificity vs. coverage |
-| **Target SIEM** | All / Splunk first / Sentinel first / Elastic first | Prioritize a platform |
+| **Confidence** | High (strict, low FP) / Medium / Low (wide net) | Controls specificity vs. coverage |
+| **Target SIEM** | All / Splunk / Sentinel / Elastic / Trend Vision One / Defender XDR | Prioritize one platform's output |
+| **Model** | gpt-4o-mini (fast) / gpt-4o (best) | OpenAI model selection |
 
 ---
 
 ## Built-in examples
 
 5 real-world attack scenarios ready to load:
-- 💻 **PowerShell download + exec** — dropper pattern
-- 🧠 **LSASS credential dump** — Mimikatz / Procdump
-- 🔗 **PsExec lateral movement** — ransomware pivoting
-- 💉 **Process injection** — CreateRemoteThread into browser
-- 🔑 **RDP brute force** — Event 4625/4624 pattern
+- 💻 **PowerShell download + exec** — dropper pattern (Invoke-WebRequest + IEX)
+- 🧠 **LSASS credential dump** — Mimikatz / Procdump / MiniDumpWriteDump
+- 🔗 **PsExec lateral movement** — ransomware pivoting with explicit credentials
+- 💉 **Process injection** — CreateRemoteThread into browser process (Sysmon EID 8)
+- 🔑 **RDP brute force** — Event 4625/4624 spike pattern
 
 ---
 
@@ -55,11 +60,11 @@ Describe an attack in plain English, paste a raw log / alert, or enter an IOC �
 https://dgiry.github.io/sigma-generator
 ```
 
-Enter attack description → click **Generate SIGMA Rule** → copy rule + platform queries.
+Enter attack description → click **Generate SIGMA Rule** → copy rule + platform queries or download as `.yml`.
 
 Requires an OpenAI API key. Stored in `localStorage` only — never transmitted except directly to OpenAI.
 
-Shared key with CVE Enricher and Alert Explainer (`cv_oai_key`).
+Key shared with CVE Enricher and Alert Explainer (`cv_oai_key`).
 
 ---
 
@@ -85,6 +90,8 @@ Static HTML — works on GitHub Pages, Netlify, Vercel, or any web server.
 git clone https://github.com/dgiry/sigma-generator
 # open index.html in your browser
 ```
+
+OpenAI API key required. Key stored in `localStorage` only — never transmitted anywhere except directly to OpenAI.
 
 ## License
 

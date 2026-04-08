@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SIGMA Rule Generator — Describe an attack. Get a detection rule.</title>
-  <meta name="description" content="Describe an attack in plain English, paste a log line, or drop an IOC — get a valid SIGMA rule with Splunk SPL, KQL, Elastic DSL and QRadar AQL conversions. AI-powered, 100% client-side.">
+  <meta name="description" content="Describe an attack in plain English, paste a log line, or drop an IOC — get a valid SIGMA rule with Splunk SPL, KQL, Elastic DSL, QRadar AQL, Trend Vision One XDR, and Microsoft Defender XDR conversions. AI-powered, 100% client-side.">
   <meta property="og:title" content="SIGMA Rule Generator — Describe an attack. Get a detection rule.">
-  <meta property="og:description" content="Plain English → SIGMA YAML + Splunk SPL + KQL + Elastic + QRadar. 3 input modes. AI-powered. 100% client-side.">
+  <meta property="og:description" content="Plain English → SIGMA YAML + Splunk SPL + KQL + Elastic + QRadar + Trend XDR + Defender XDR. 3 input modes. AI-powered. 100% client-side.">
   <meta property="og:url" content="https://dgiry.github.io/sigma-generator">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -190,7 +190,7 @@
 
     <!-- Subhead -->
     <p class="fade-up-3 text-lg sm:text-xl text-slate-400 max-w-2xl leading-relaxed mb-10">
-      Plain English, raw log, or IOC — auto-generates a valid SIGMA rule with Splunk SPL, Microsoft KQL, Elastic DSL, and QRadar AQL conversions. Ready to import.
+      Plain English, raw log, or IOC — auto-generates a valid SIGMA rule with Splunk SPL, Microsoft KQL, Elastic DSL, QRadar AQL, Trend Vision One XDR, and Microsoft Defender XDR conversions. Ready to import.
     </p>
 
     <!-- Demo card -->
@@ -237,6 +237,8 @@ Start-Process or IEX.<span class="cursor"></span></div>
               <span class="plat-badge plat-kql">KQL</span>
               <span class="plat-badge plat-elastic">EQL</span>
               <span class="plat-badge plat-qradar">AQL</span>
+              <span class="plat-badge" style="background:rgba(215,38,61,.1);color:#fca5a5;border:1px solid rgba(215,38,61,.25)">XDR</span>
+              <span class="plat-badge" style="background:rgba(0,180,216,.1);color:#67e8f9;border:1px solid rgba(0,180,216,.25)">Defender</span>
             </div>
           </div>
 
@@ -355,7 +357,7 @@ Start-Process or IEX.<span class="cursor"></span></div>
 
     <div class="text-center mb-16">
       <div class="text-xs font-bold tracking-widest uppercase mb-3" style="color:#58a6ff">What you get</div>
-      <h2 class="text-3xl sm:text-4xl font-black tracking-tight">One input.<br><span class="shimmer-blue">Five platforms covered.</span></h2>
+      <h2 class="text-3xl sm:text-4xl font-black tracking-tight">One input.<br><span class="shimmer-blue">Seven platforms covered.</span></h2>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -432,6 +434,50 @@ CommandLine=*IEX*</div>
         </div>
         <div class="text-xs font-mono p-2 rounded" style="background:rgba(240,202,77,.05);border:1px solid rgba(240,202,77,.15);color:#fde68a;line-height:1.6">process where process.name == "powershell.exe"
 and process.args : ("*IEX*", "*DownloadFile*")</div>
+      </div>
+
+      <!-- QRadar AQL -->
+      <div class="output-card">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🟣</span>
+            <span class="text-xs font-bold tracking-widest uppercase text-slate-400">QRadar AQL</span>
+          </div>
+          <span class="tier-ai">🤖 AI</span>
+        </div>
+        <div class="text-xs font-mono p-2 rounded" style="background:rgba(29,78,216,.06);border:1px solid rgba(29,78,216,.2);color:#a5b4fc;line-height:1.6">SELECT UTF8(payload) FROM events
+WHERE "Process Name" LIKE '%powershell%'
+AND "Command" LIKE '%IEX%'</div>
+      </div>
+
+      <!-- Trend Vision One XDR -->
+      <div class="output-card">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🔺</span>
+            <span class="text-xs font-bold tracking-widest uppercase text-slate-400">Trend Vision One XDR</span>
+          </div>
+          <span class="tier-ai">🤖 AI</span>
+        </div>
+        <div class="text-xs font-mono p-2 rounded" style="background:rgba(215,38,61,.06);border:1px solid rgba(215,38,61,.2);color:#fca5a5;line-height:1.6">eventSubId:1 AND
+processFilePath:*powershell.exe AND
+(processCmd:*IEX* OR
+ processCmd:*DownloadFile*)</div>
+      </div>
+
+      <!-- Microsoft Defender XDR -->
+      <div class="output-card">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🛡️</span>
+            <span class="text-xs font-bold tracking-widest uppercase text-slate-400">Microsoft Defender XDR</span>
+          </div>
+          <span class="tier-ai">🤖 AI</span>
+        </div>
+        <div class="text-xs font-mono p-2 rounded" style="background:rgba(0,180,216,.06);border:1px solid rgba(0,180,216,.2);color:#67e8f9;line-height:1.6">DeviceProcessEvents
+| where FileName =~ "powershell.exe"
+| where ProcessCommandLine has_any
+  ("IEX", "DownloadFile", "WebClient")</div>
       </div>
 
       <!-- False Positives -->

@@ -280,10 +280,12 @@
     }
     .conv-platform { display: flex; align-items: center; gap: 7px; font-size: .8rem; font-weight: 700; }
     .platform-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .pd-splunk  { background: #00a3e0; }
-    .pd-kql     { background: #0078d4; }
-    .pd-elastic { background: #f0ca4d; }
-    .pd-qradar  { background: #1d4ed8; }
+    .pd-splunk   { background: #00a3e0; }
+    .pd-kql      { background: #0078d4; }
+    .pd-elastic  { background: #f0ca4d; }
+    .pd-qradar   { background: #1d4ed8; }
+    .pd-trend    { background: #d7263d; }
+    .pd-defender { background: #00b4d8; }
     pre.conv-pre {
       margin: 0; padding: 12px 14px;
       font-family: 'JetBrains Mono', monospace; font-size: .76rem;
@@ -409,7 +411,7 @@
       <div>
         <div class="intro-title">SIGMA Rule Generator</div>
         <div class="intro-sub">
-          Describe an attack in plain English, paste a log line, drop a raw alert, or enter an IOC — and get a valid SIGMA detection rule with Splunk SPL, Microsoft KQL, Elastic DSL, and QRadar AQL conversions. 100% client-side. No data sent anywhere except OpenAI.
+          Describe an attack in plain English, paste a log line, drop a raw alert, or enter an IOC — and get a valid SIGMA detection rule with Splunk SPL, Microsoft KQL, Elastic DSL, QRadar AQL, Trend Vision One XDR, and Microsoft Defender XDR conversions. 100% client-side. No data sent anywhere except OpenAI.
         </div>
       </div>
     </div>
@@ -603,6 +605,28 @@
             <button class="btn-copy" id="copy-qradar" onclick="copyBlock('conv-qradar', 'copy-qradar')">Copy</button>
           </div>
           <pre class="conv-pre" id="conv-qradar"></pre>
+        </div>
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-trend"></span>
+              Trend Vision One XDR
+            </div>
+            <button class="btn-copy" id="copy-trend" onclick="copyBlock('conv-trend', 'copy-trend')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-trend"></pre>
+        </div>
+
+        <div class="conv-card">
+          <div class="conv-header">
+            <div class="conv-platform">
+              <span class="platform-dot pd-defender"></span>
+              Microsoft Defender XDR
+            </div>
+            <button class="btn-copy" id="copy-defender" onclick="copyBlock('conv-defender', 'copy-defender')">Copy</button>
+          </div>
+          <pre class="conv-pre" id="conv-defender"></pre>
         </div>
 
       </div>
@@ -813,6 +837,14 @@ MITRE ATT&CK REQUIREMENTS:
 - Include sub-techniques where applicable (e.g. T1003.001 not just T1003)
 - URL format: https://attack.mitre.org/techniques/T1059/001/ (slashes, trailing slash)
 
+PLATFORM CONVERSION REQUIREMENTS:
+- splunk_spl: index=* with sourcetype and field filters, complete pipe chain, runnable in Splunk ES
+- kql: Use Microsoft Sentinel tables (SecurityEvent, Sysmon, DeviceProcessEvents via union if needed), complete runnable KQL
+- elastic_dsl: Prefer EQL (process where ...) for process/network events, DSL for other. Complete and runnable.
+- qradar_aql: SELECT UTF8(payload) FROM events WHERE ... with proper QRadar field names and AQL syntax
+- trend_xdr: Use Trend Vision One Search App syntax. For process events use: processCmd, processFilePath, objectFilePath. For network: dst, dpt, src. Filter by eventSubId where relevant (e.g. 1=process created). Complete runnable query.
+- defender_xdr: Use Microsoft Defender XDR advanced hunting KQL. Use appropriate tables: DeviceProcessEvents (process creation), DeviceNetworkEvents (network connections), DeviceFileEvents (file ops), DeviceRegistryEvents (registry). Do NOT use Sentinel-only tables. Complete runnable query.
+
 FALSE POSITIVES REQUIREMENTS:
 - List 3-5 specific, realistic false positive scenarios for THIS detection
 - Be concrete: name actual tools, processes, or admin behaviors that could trigger the rule
@@ -838,6 +870,8 @@ Return ONLY a valid JSON object with exactly these fields — no markdown, no co
   "kql": "SecurityEvent | where ... (complete runnable KQL)",
   "elastic_dsl": "process where ... (complete runnable EQL or DSL)",
   "qradar_aql": "SELECT ... FROM ... (complete runnable AQL)",
+  "trend_xdr": "eventSubId:1 AND processCmd:* ... (complete runnable Trend Vision One XDR Search query using their Search App syntax)",
+  "defender_xdr": "DeviceProcessEvents | where ... (complete runnable KQL for Microsoft Defender XDR using tables like DeviceProcessEvents, DeviceNetworkEvents, DeviceFileEvents, DeviceRegistryEvents)",
   "false_positives": [
     "Specific realistic scenario 1",
     "Specific realistic scenario 2",
@@ -895,10 +929,12 @@ Return ONLY a valid JSON object with exactly these fields — no markdown, no co
     document.getElementById('sigma-pre').textContent = r.sigma_rule || '';
 
     // Conversions
-    document.getElementById('conv-splunk').textContent  = r.splunk_spl    || '# Not available';
-    document.getElementById('conv-kql').textContent     = r.kql            || '# Not available';
-    document.getElementById('conv-elastic').textContent = r.elastic_dsl    || '# Not available';
-    document.getElementById('conv-qradar').textContent  = r.qradar_aql     || '# Not available';
+    document.getElementById('conv-splunk').textContent   = r.splunk_spl    || '# Not available';
+    document.getElementById('conv-kql').textContent      = r.kql            || '# Not available';
+    document.getElementById('conv-elastic').textContent  = r.elastic_dsl    || '# Not available';
+    document.getElementById('conv-qradar').textContent   = r.qradar_aql     || '# Not available';
+    document.getElementById('conv-trend').textContent    = r.trend_xdr      || '# Not available';
+    document.getElementById('conv-defender').textContent = r.defender_xdr   || '# Not available';
 
     showResults();
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });

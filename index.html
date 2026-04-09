@@ -515,7 +515,7 @@
       </div>
       <div class="opt-group">
         <span class="opt-label">Target SIEM</span>
-        <select class="opt-select" id="opt-primary">
+        <select class="opt-select" id="opt-primary" onchange="onPlatformChange(this.value)">
           <option value="all">All platforms</option>
           <option value="splunk">Splunk first</option>
           <option value="sentinel">Sentinel / KQL first</option>
@@ -523,6 +523,10 @@
           <option value="trend">Trend Vision One first</option>
           <option value="defender">Defender XDR first</option>
         </select>
+        <div id="trend-helper" style="display:none;font-size:.72rem;color:#8b949e;margin-top:4px;line-height:1.4">
+          ⚠️ Target observable artifacts — not CVE IDs directly.<br>
+          Use <code style="color:#d7263d">processCmd</code>, <code style="color:#d7263d">processFilePath</code>, <code style="color:#d7263d">dst</code>, <code style="color:#d7263d">eventSubId</code>.
+        </div>
       </div>
     </div>
 
@@ -629,13 +633,13 @@
           <pre class="conv-pre" id="conv-qradar"></pre>
         </div>
 
-        <div class="conv-card">
+        <div class="conv-card" id="card-trend">
           <div class="conv-header">
             <div class="conv-platform">
               <span class="platform-dot pd-trend"></span>
               Trend Vision One XDR
             </div>
-            <button class="btn-copy" id="copy-trend" onclick="copyBlock('conv-trend', 'copy-trend')">Copy</button>
+            <button class="btn-copy" id="copy-trend" onclick="copyBlock('conv-trend', 'copy-trend')">Copy XDR query</button>
           </div>
           <pre class="conv-pre" id="conv-trend"></pre>
         </div>
@@ -728,9 +732,21 @@
     const platform = params.get('platform');
     if (platform) {
       const sel = document.getElementById('opt-primary');
-      if (sel) sel.value = platform;
+      if (sel) { sel.value = platform; onPlatformChange(platform); }
     }
   });
+
+  function onPlatformChange(val) {
+    const helper = document.getElementById('trend-helper');
+    if (helper) helper.style.display = val === 'trend' ? 'block' : 'none';
+
+    const ta = document.getElementById('input-description');
+    if (ta && !ta.value && val === 'trend') {
+      ta.placeholder = 'Describe the attack behavior to detect in Trend Vision One XDR…\n\nExamples:\n• PowerShell downloading and executing a payload via IEX\n• LSASS memory access from a non-system process\n• Lateral movement via PsExec with explicit credentials\n\n→ The query will use processCmd, processFilePath, eventSubId — not CVE IDs.';
+    } else if (ta && !ta.value) {
+      ta.placeholder = 'Describe the attack or behavior to detect…\n\nExamples:\n• PowerShell downloading a file from the internet and executing it\n• Credential dumping via lsass memory access\n• Lateral movement using PsExec with explicit credentials\n• Process injection into a browser process';
+    }
+  }
 
   /* ═══════════════════════════════════════════════════════════
      TAB SWITCHING

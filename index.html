@@ -358,6 +358,12 @@
     }
     @keyframes spin { to{ transform: rotate(360deg); } }
     .spinner-text { font-size: .85rem; color: var(--text2); }
+    .spinner-step {
+      font-size: .7rem; font-weight: 700; color: var(--text3);
+      font-family: var(--mono); transition: color .3s;
+    }
+    .spinner-step.active { color: var(--accent); }
+    .spinner-step.done   { color: var(--green); }
 
     /* ═══════════════════════════════════════════════════
        ERROR
@@ -542,7 +548,18 @@
     <div id="loading">
       <div class="spinner-wrap">
         <div class="spinner"></div>
-        <div class="spinner-text">Generating SIGMA rule…</div>
+        <div class="spinner-text" id="spinner-text">Analyzing attack pattern…</div>
+        <div style="display:flex;gap:6px;margin-top:4px" id="spinner-steps">
+          <span class="spinner-step" id="sp-1">SIGMA rule</span>
+          <span style="color:var(--text3)">·</span>
+          <span class="spinner-step" id="sp-2">SPL</span>
+          <span style="color:var(--text3)">·</span>
+          <span class="spinner-step" id="sp-3">KQL</span>
+          <span style="color:var(--text3)">·</span>
+          <span class="spinner-step" id="sp-4">Trend XDR</span>
+          <span style="color:var(--text3)">·</span>
+          <span class="spinner-step" id="sp-5">Defender</span>
+        </div>
       </div>
     </div>
 
@@ -1064,9 +1081,48 @@ Return ONLY a valid JSON object with exactly these fields — no markdown, no co
   /* ═══════════════════════════════════════════════════════════
      UI HELPERS
   ═══════════════════════════════════════════════════════════ */
+  let _spinnerTimer = null;
   function setLoading(on) {
     document.getElementById('loading').style.display = on ? 'block' : 'none';
     document.getElementById('btn-gen').disabled = on;
+    if (on) _startSpinnerAnimation();
+    else    _stopSpinnerAnimation();
+  }
+
+  function _startSpinnerAnimation() {
+    const steps = ['sp-1','sp-2','sp-3','sp-4','sp-5'];
+    const labels = ['Analyzing pattern…','Building SIGMA rule…','Converting to SPL…','Converting to KQL…','Generating XDR queries…'];
+    let i = 0;
+    // reset
+    steps.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('active','done'); }
+    });
+    const textEl = document.getElementById('spinner-text');
+    _spinnerTimer = setInterval(() => {
+      if (i > 0) {
+        const prev = document.getElementById(steps[i - 1]);
+        if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
+      }
+      if (i < steps.length) {
+        const cur = document.getElementById(steps[i]);
+        if (cur) cur.classList.add('active');
+        if (textEl && labels[i]) textEl.textContent = labels[i];
+        i++;
+      } else {
+        clearInterval(_spinnerTimer);
+      }
+    }, 2200);
+  }
+
+  function _stopSpinnerAnimation() {
+    clearInterval(_spinnerTimer);
+    ['sp-1','sp-2','sp-3','sp-4','sp-5'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('active'); el.classList.add('done'); }
+    });
+    const textEl = document.getElementById('spinner-text');
+    if (textEl) textEl.textContent = 'Done ✓';
   }
   function showResults()  { document.getElementById('results').style.display = 'block'; }
   function hideResults()  { document.getElementById('results').style.display = 'none'; }

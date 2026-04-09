@@ -725,6 +725,11 @@
     if (pre) {
       document.getElementById('input-description').value = decodeURIComponent(pre);
     }
+    const platform = params.get('platform');
+    if (platform) {
+      const sel = document.getElementById('opt-primary');
+      if (sel) sel.value = platform;
+    }
   });
 
   /* ═══════════════════════════════════════════════════════════
